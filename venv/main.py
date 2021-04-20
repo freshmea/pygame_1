@@ -2,25 +2,27 @@ import pygame, sys, random
 from pygame.locals import *
 pygame.init()
 pygame.display.set_caption("움직이는 원")
-screen = pygame.display.set_mode((640, 480))
-xpos= 50
-ypos= 200
+screen_x =640*2
+screen_y =480*2
+
+screen = pygame.display.set_mode((screen_x, screen_y))
+
 clock = pygame.time.Clock()
 raindrop_spawn_time=0
-rain_quantity=11
+rain_quantity=11 #구름 양
 
 mike_umbrella_image = pygame.image.load("images/Mike_umbrella.png").convert()
 cloud_image = pygame.image.load(("images/cloud.png")).convert()
 
 """구름 클래스 정의"""
 class Cloud:
-    def __init__(self):
-        self.x = 300
+    def __init__(self, x):
+        self.x = x
         self.y = 50
     def move(self):
-        if self.x >= 640:
+        if self.x >= screen_x:
             self.x = 1
-        self.x += 1
+        self.x += random.randint(1,10)
     def rain(self):
         raindrops.append(Raindrop(random.randint(self.x, self.x+300), self.y+100))
     def draw(self):
@@ -42,13 +44,13 @@ class Mike:
             self.y -= 5
         if pressed_keys[K_DOWN]:
             self.y += 5
-        if self.x >= 640:
+        if self.x >= screen_x:
             self.x = 1
         if self.x <= 0:
-            self.x = 640
+            self.x = screen_x
         if self.y <= 0:
-            self.y = 479
-        if self.y >= 480:
+            self.y = screen_y-1
+        if self.y >= screen_y:
             self.y = 1
 
     def hit_by(self, raindrop):
@@ -68,15 +70,15 @@ class Raindrop:
         self.y += self.speed
 
     def off_screen(self):
-        return self.y > 800
+        return self.y > screen_y+20
 
     def draw(self):
         pygame.draw.line(screen, (0,0,0), (self.x, self.y), (self.x, self.y+5), self.bold)
 
 raindrops= []
 mike = Mike()
-cloud = Cloud()
-
+cloud = Cloud(50)
+cloud2 = Cloud(screen_y/2)
 while True:
     """게임 프레임 설정"""
     clock.tick(60)
@@ -94,14 +96,16 @@ while True:
 
     for i in range(random.randint(1, rain_quantity)):
         cloud.rain()
+        cloud2.rain()
 
     screen.fill((255,255,255))
 
     mike.keydown()
     mike.draw()
     cloud.move()
+    cloud2.move()
     cloud.draw()
-
+    cloud2.draw()
     """빗방울 그리기"""
     while i<len(raindrops):
         raindrops[i].move()

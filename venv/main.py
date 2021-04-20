@@ -1,7 +1,7 @@
 import pygame, sys, random
 from pygame.locals import *
 pygame.init()
-pygame.display.set_caption("움직이는 원")
+pygame.display.set_caption("비 맞는 마이크")
 screen_x =640*2
 screen_y =480*2
 

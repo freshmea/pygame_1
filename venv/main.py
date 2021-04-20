@@ -8,13 +8,17 @@ screen_y =480*2
 screen = pygame.display.set_mode((screen_x, screen_y))
 
 clock = pygame.time.Clock()
-raindrop_spawn_time = 0
 last_hit_time = 0
 rain_quantity=11 #구름 양
 
+
+"""이미지 로드"""
 mike_umbrella_image = pygame.image.load("images/Mike_umbrella.png").convert()
 mike_image = pygame.image.load(("images/mike.png")).convert()
 cloud_image = pygame.image.load(("images/cloud.png")).convert()
+cloud_image.set_colorkey((255, 255, 255))
+mike_image.set_colorkey((255, 255, 255))
+mike_umbrella_image.set_colorkey((255, 255, 255))
 
 """구름 클래스 정의"""
 class Cloud:
@@ -57,6 +61,7 @@ class Mike:
 
     def hit_by(self, raindrop):
         return pygame.Rect(self.x, self.y, 170, 192).collidepoint((raindrop.x, raindrop.y))
+
     def draw(self):
         if time.time() > last_hit_time+.1:
             screen.blit(mike_image, (self.x, self.y))
@@ -80,11 +85,15 @@ class Raindrop:
     def draw(self):
         pygame.draw.line(screen, (0,0,0), (self.x, self.y), (self.x, self.y+5), self.bold)
 
+
+#리스트와 객체 생성
 raindrops= []
 mike = Mike()
 cloud = Cloud(50)
 cloud2 = Cloud(screen_y/2)
+
 while True:
+
     """게임 프레임 설정"""
     clock.tick(60)
 

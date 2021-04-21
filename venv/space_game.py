@@ -1,4 +1,4 @@
-import pygame, sys, random, time
+import pygame, sys, random, time, math
 from pygame.locals import *
 pygame.init()
 clock = pygame.time.Clock()
@@ -6,8 +6,8 @@ pygame.display.set_caption("Space Invaders")
 screen_x =640*2
 screen_y =480*2
 last_badguy_spawn_time = 0
-font = pygame.font.Font(None, 50)
-
+font = pygame.font.Font(None, 25)
+fighter_speed = 6
 screen = pygame.display.set_mode((screen_x, screen_y))
 
 badguy_image = pygame.image.load("images/badguy.png").convert()
@@ -21,29 +21,35 @@ GAME_OVER = pygame.image.load("images/gameover.png").convert()
 
 
 class Fighter:
-    shots = 0
-    hits = 0
-    misses = 0
     def __init__(self):
         self.x =320
+        self.y = screen_y-100
+        self.shots = 0
+        self.hits = 0
+        self.misses = 0
+        self.score = 0
     def move(self):
         if pressed_keys[K_LEFT] and self.x>0:
-            self.x -= 3
+            self.x -= fighter_speed
         if pressed_keys[K_RIGHT] and self.x < screen_x-50:
-            self.x += 3
+            self.x += fighter_speed
+        if pressed_keys[K_UP] and self.y>0:
+            self.y -= fighter_speed
+        if pressed_keys[K_DOWN] and self.x < screen_y-50:
+            self.y += fighter_speed
     def fire(self):
-        Fighter.shots += 1
-        missiles.append(Missile(self.x+50))
+        self.shots += 1
+        missiles.append(Missile(self.x+50, self.y))
 
     def hit_by(self, badguy):
-        return ( badguy.y > screen_y-145 and badguy.y < screen_y-100 and badguy.x > self.x - 55 and badguy.x < self.x + 85 )
+        return pygame.Rect(self.x, self.y, 100, 59).colliderect((badguy.x, badguy.y), (70, 45))
     def draw(self):
-        screen.blit(fighter_image,(self.x, screen_y-100))
+        screen.blit(fighter_image,(self.x, self.y))
 
 class Missile:
-    def __init__(self, x):
+    def __init__(self, x, y):
         self.x = x
-        self.y = screen_y-50
+        self.y = y
     def move(self):
         self.y -= 5
     def off_screen(self):
@@ -53,17 +59,23 @@ class Missile:
         screen.blit(missile_image,(self.x-4, self.y))
 
 class Badguy:
-    score = 0
     def __init__(self):
         self.x = random.randint(0, screen_x-10)
         self.y = -100
-        self.dy = random.randint(2,6)
-        self.dx = random.choice((-1,1))*self.dy
+        speed = random.randint(2,15)
+        d = (math.pi)*random.random()-(math.pi/4)
+        self.dx = math.sin(d)*speed
+        self.dy = math.cos(d)*speed
 
-    def c_score(self):
-        Badguy.score += 100
 
     def move(self):
+        o = random.randint(1, 1000)
+        if o == 1:
+            self.dx *= 2
+        if o == 2:
+            self.dy *= 2
+        if o in range(3, 30):
+            self.dy *= -1
         self.x += self.dx
         self.y += self.dy
 
@@ -78,12 +90,19 @@ class Badguy:
         screen.blit(badguy_image,(self.x, self.y))
 
     def off_screen(self):
-        return self.y >screen_y
-
+        return self.y >screen_y or self.y < -100
 
 badguys = []
 fighter = Fighter()
 missiles = []
+
+def setup():
+    global badguys
+    badguys = []
+    global fighter
+    fighter = Fighter()
+    global missiles
+    missiles = []
 
 while True:
     clock.tick(60)
@@ -94,7 +113,7 @@ while True:
             fighter.fire()
     pressed_keys = pygame.key.get_pressed()
 
-    if time.time() - last_badguy_spawn_time > 0.5:
+    if time.time() - last_badguy_spawn_time > 0.1:
         badguys.append(Badguy())
         last_badguy_spawn_time = time.time()
 
@@ -105,8 +124,8 @@ while True:
     for i in badguys:
         for j in missiles:
             if i.touching(j):
-                i.c_score()
-                Fighter.hits += 1
+                fighter.score += 100
+                fighter.hits += 1
                 badguys.remove(i)
                 missiles.remove(j)
                 break
@@ -120,15 +139,26 @@ while True:
         if fighter.hit_by(i):
             screen.blit(GAME_OVER, (170,200))
 
-            screen.blit(font.render(str(Fighter.shots), True, (255,255,255)), (266, 320))
-            screen.blit(font.render(str(Badguy.score), True, (255, 255, 255)), (266, 340))
-            screen.blit(font.render(str(Fighter.hits), True, (255, 255, 255)), (400, 320))
-            screen.blit(font.render(str(Fighter.misses), True, (255, 255, 255)), (400, 337))
-            screen.blit(font.render(str(100*Fighter.hits/Fighter.shots), True, (255, 255, 255)), (400, 357))
+            screen.blit(font.render(str(fighter.shots), True, (255,255,255)), (266, 320))
+            screen.blit(font.render(str(fighter.score), True, (255, 255, 255)), (266, 340))
+            screen.blit(font.render(str(fighter.hits), True, (255, 255, 255)), (400, 320))
+            screen.blit(font.render(str(fighter.misses), True, (255, 255, 255)), (400, 337))
+            if fighter.shots ==0:
+                screen.blit(font.render('---', True, (255, 255, 255)), (400, 357))
+            else:
+                screen.blit(font.render(str('{:.1f}%').format(100*fighter.hits/fighter.shots), True, (255, 255, 255)), (400, 357))
             while True:
+                flag = 0
                 for event in pygame.event.get():
                     if event.type == QUIT:
                         sys.exit()
+                    if event.type == KEYDOWN and event.key == K_SPACE:
+                        flag = 1
+                        break
+
+                if flag == 1:
+                    setup()
+                    break
                 pygame.display.update()
 
     for i in missiles:
@@ -136,7 +166,7 @@ while True:
         i.draw()
         if i.off_screen():
             missiles.remove(i)
-            Fighter.misses += 1
+            fighter.misses += 1
 
-    screen.blit(font.render(f"Score: {Badguy.score}", True, (255,255,255)),(5,5))
+    screen.blit(font.render(f"Score: {fighter.score}", True, (255,255,255)),(5,5))
     pygame.display.update()

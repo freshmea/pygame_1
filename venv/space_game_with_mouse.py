@@ -162,7 +162,7 @@ class Badguy:
 
 
 
-def setup():
+def start():
     global badguys
     badguys = []
     global fighter
@@ -174,9 +174,38 @@ def setup():
     background_music = pygame.mixer.music.load("sound/01 - Opening.ogg")
     pygame.mixer.music.play(-1)
 
+def ending():
+    ending_music = pygame.mixer.music.load("sound/06 - Rebels Be.ogg")
+    pygame.mixer.music.play()
+    screen.fill((0, 0, 0))
+    screen.blit(font.render(f'당신이 쏜 총알의 수는: {fighter.shots}', True, (255, 255, 255)), (screen_x / 4, screen_y / 4))
+    screen.blit(font.render(f'당신의 점수는 : {fighter.score}', True, (255, 255, 255)), (screen_x / 4, screen_y / 4 + 50))
+    screen.blit(font.render(f'당신이 맞춘 수는 : {fighter.hits}', True, (255, 255, 255)), (screen_x / 4, screen_y / 2))
+    screen.blit(font.render(f'당신의 빗나간 총알 수는 :{fighter.misses}', True, (255, 255, 255)),
+                (screen_x / 4, screen_y / 2 + 50))
+    if fighter.shots == 0:
+        screen.blit(font.render('---', True, (255, 255, 255)), (400, 357))
+    else:
+        screen.blit(font.render(f'당신의 적중률은 :{100 * fighter.hits / fighter.shots:.2f}', True, (255, 255, 255)),
+                    (screen_x / 4, screen_y / 2 + 120))
+    screen.blit(font.render(f'다시 하고 싶으면 스페이스 키를 누루세요.', True, (255, 255, 255)),
+                (screen_x / 4, screen_y / 2 + 160))
+    while True:
+        flag = 0
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                sys.exit()
+            if event.type == KEYDOWN and event.key == K_SPACE:
+                flag = 1
+                break
 
+        if flag == 1:
+            start()
+            break
+        pygame.display.update()
 
-setup()
+start()
+
 while True:
     clock.tick(60)
 
@@ -215,30 +244,8 @@ while True:
 
     for i in badguys:
         if fighter.hit_by(i):
-            ending_music = pygame.mixer.music.load("sound/06 - Rebels Be.ogg")
-            pygame.mixer.music.play()
-            screen.fill((0, 0, 0))
-            screen.blit(font.render(f'당신이 쏜 총알의 수는: {fighter.shots}', True, (255,255,255)), (screen_x/4, screen_y/4))
-            screen.blit(font.render(f'당신의 점수는 : {fighter.score}', True, (255, 255, 255)), (screen_x/4, screen_y/4+50))
-            screen.blit(font.render(f'당신이 맞춘 수는 : {fighter.hits}', True, (255, 255, 255)), (screen_x/4, screen_y/2))
-            screen.blit(font.render(f'당신의 빗나간 총알 수는 :{fighter.misses}', True, (255, 255, 255)), (screen_x/4, screen_y/2+50))
-            if fighter.shots ==0:
-                screen.blit(font.render('---', True, (255, 255, 255)), (400, 357))
-            else:
-                screen.blit(font.render(str('{:.1f}%').format(100*fighter.hits/fighter.shots), True, (255, 255, 255)), (screen_x/4, screen_y/2+120))
-            while True:
-                flag = 0
-                for event in pygame.event.get():
-                    if event.type == QUIT:
-                        sys.exit()
-                    if event.type == KEYDOWN and event.key == K_r:
-                        flag = 1
-                        break
+            ending()
 
-                if flag == 1:
-                    setup()
-                    break
-                pygame.display.update()
 
     for i in missiles:
         i.move()
@@ -246,9 +253,8 @@ while True:
         if i.off_screen():
             missiles.remove(i)
             fighter.misses += 1
-    print(start_time-time.time())
     if time.time()-start_time> 10:
-        sys.exit()
+        ending()
     screen.blit(font.render(f"점수: {fighter.score} 남은 시간:{10-(time.time()-start_time):.2f}", True, (255,255,255)),(5,5))
     pygame.display.update()
 

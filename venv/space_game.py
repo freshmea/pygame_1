@@ -1,5 +1,7 @@
 import pygame, sys, random, time, math
 from pygame.locals import *
+
+
 pygame.init()
 clock = pygame.time.Clock()
 pygame.display.set_caption("Space Invaders")
@@ -12,13 +14,24 @@ screen = pygame.display.set_mode((screen_x, screen_y))
 
 badguy_image = pygame.image.load("images/badguy.png").convert()
 badguy_image.set_colorkey((0, 0, 0))
-fighter_image = pygame.image.load("images/fighter.png").convert()
-fighter_image.set_colorkey((255,255,255))
+fighter_image_1 = pygame.image.load("images/bat-a.png").convert()
+fighter_image_2 = pygame.image.load("images/bat-b.png").convert()
+fighter_image_3 = pygame.image.load("images/bat-c.png").convert()
+fighter_image_1 = pygame.transform.scale(fighter_image_1,(100,59))
+fighter_image_2 = pygame.transform.scale(fighter_image_2,(100,59))
+fighter_image_3 = pygame.transform.scale(fighter_image_3,(100,59))
+fighter_image_1.set_colorkey((0,0,0))
+fighter_image_2.set_colorkey((0,0,0))
+fighter_image_3.set_colorkey((0,0,0))
+
 missile_image = pygame.image.load("images/missile.png").convert()
 missile_image.set_colorkey((255,255,255))
 GAME_OVER = pygame.image.load("images/gameover.png").convert()
 
+background = pygame.image.load('images/Nebula.png')
+background = pygame.transform.scale(background, (screen_x, screen_y))
 
+missile_sound = pygame.mixer.Sound("sound/tank_hit.ogg")
 
 class Fighter:
     def __init__(self):
@@ -40,11 +53,19 @@ class Fighter:
     def fire(self):
         self.shots += 1
         missiles.append(Missile(self.x+50, self.y))
+        missile_sound.play()
 
     def hit_by(self, badguy):
         return pygame.Rect(self.x, self.y, 100, 59).colliderect((badguy.x, badguy.y), (70, 45))
     def draw(self):
-        screen.blit(fighter_image,(self.x, self.y))
+        if time.time() % 1 < 20/60:
+            screen.blit(fighter_image_1, (self.x, self.y))
+        elif time.time() % 1 < 40/60:
+            screen.blit(fighter_image_2, (self.x, self.y))
+        else :
+            screen.blit(fighter_image_3, (self.x, self.y))
+
+
 
 class Missile:
     def __init__(self, x, y):
@@ -106,6 +127,8 @@ def setup():
 
 while True:
     clock.tick(60)
+
+
     for event in pygame.event.get():
         if event.type == QUIT:
             sys.exit()
@@ -118,6 +141,7 @@ while True:
         last_badguy_spawn_time = time.time()
 
     screen.fill((0,0,0))
+    screen.blit(background, (0,0))
     fighter.move()
     fighter.draw()
 
@@ -152,7 +176,7 @@ while True:
                 for event in pygame.event.get():
                     if event.type == QUIT:
                         sys.exit()
-                    if event.type == KEYDOWN and event.key == K_SPACE:
+                    if event.type == KEYDOWN and event.key == K_r:
                         flag = 1
                         break
 

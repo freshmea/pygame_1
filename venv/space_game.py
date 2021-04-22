@@ -194,3 +194,6 @@ while True:
 
     screen.blit(font.render(f"Score: {fighter.score}", True, (255,255,255)),(5,5))
     pygame.display.update()
+
+
+#https://opengameart.org/

@@ -8,7 +8,7 @@ pygame.display.set_caption("Space Invaders")
 screen_x =640*2
 screen_y =480*2
 last_badguy_spawn_time = 0
-font = pygame.font.Font(None, 25)
+font = pygame.font.Font(None, 100)
 fighter_speed = 6
 screen = pygame.display.set_mode((screen_x, screen_y))
 
@@ -27,11 +27,13 @@ fighter_image_3.set_colorkey((0,0,0))
 missile_image = pygame.image.load("images/missile.png").convert()
 missile_image.set_colorkey((255,255,255))
 GAME_OVER = pygame.image.load("images/gameover.png").convert()
+GAME_OVER = pygame.transform.scale(GAME_OVER, (screen_x-200, screen_y-200))
 
 background = pygame.image.load('images/Nebula.png')
 background = pygame.transform.scale(background, (screen_x, screen_y))
 
-missile_sound = pygame.mixer.Sound("sound/tank_hit.ogg")
+missile_sound = pygame.mixer.Sound("sound/synth_laser_03.ogg")
+background_music = pygame.mixer.music.load("sound/01 - Opening.ogg")
 
 class Fighter:
     def __init__(self):
@@ -125,8 +127,10 @@ def setup():
     global missiles
     missiles = []
 
+pygame.mixer.music.play()
 while True:
     clock.tick(60)
+
 
 
     for event in pygame.event.get():
@@ -161,16 +165,16 @@ while True:
 
     for i in badguys:
         if fighter.hit_by(i):
-            screen.blit(GAME_OVER, (170,200))
+            screen.blit(GAME_OVER, (100,100))
 
-            screen.blit(font.render(str(fighter.shots), True, (255,255,255)), (266, 320))
-            screen.blit(font.render(str(fighter.score), True, (255, 255, 255)), (266, 340))
-            screen.blit(font.render(str(fighter.hits), True, (255, 255, 255)), (400, 320))
-            screen.blit(font.render(str(fighter.misses), True, (255, 255, 255)), (400, 337))
+            screen.blit(font.render(str(fighter.shots), True, (255,255,255)), (screen_x/2-200, screen_y/2))
+            screen.blit(font.render(str(fighter.score), True, (255, 255, 255)), (screen_x/2-200, screen_y/2+50))
+            screen.blit(font.render(str(fighter.hits), True, (255, 255, 255)), (screen_x/2+250, screen_y/2))
+            screen.blit(font.render(str(fighter.misses), True, (255, 255, 255)), (screen_x/2+250, screen_y/2+50))
             if fighter.shots ==0:
                 screen.blit(font.render('---', True, (255, 255, 255)), (400, 357))
             else:
-                screen.blit(font.render(str('{:.1f}%').format(100*fighter.hits/fighter.shots), True, (255, 255, 255)), (400, 357))
+                screen.blit(font.render(str('{:.1f}%').format(100*fighter.hits/fighter.shots), True, (255, 255, 255)), (screen_x/2+250, screen_y/2+120))
             while True:
                 flag = 0
                 for event in pygame.event.get():

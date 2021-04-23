@@ -16,9 +16,8 @@ badguy_speed = 15
 screen = pygame.display.set_mode((screen_x, screen_y))
 start_time=0
 
-badguy_image = pygame.image.load("images/frog.png").convert()
-badguy_image = pygame.transform.scale(badguy_image, (100, 80))
-badguy_image.set_colorkey((255, 255, 255))
+
+
 fighter_image_1 = pygame.image.load("images/bat-a.png").convert()
 fighter_image_2 = pygame.image.load("images/bat-b.png").convert()
 fighter_image_3 = pygame.image.load("images/bat-c.png").convert()
@@ -53,6 +52,7 @@ class Fighter:
         self.dir = math.atan2(x-self.x,y-self.y)-math.pi/2
 
 
+
     def move(self):
         if pressed_keys[K_a] and self.x > 0:
             self.x -= fighter_speed
@@ -69,7 +69,7 @@ class Fighter:
 
     def hit_by(self, badguy):
         fighter_rect = fighter_image_1.get_rect(left=self.x, top=self.y)
-        badguy_rect = badguy_image.get_rect(left=badguy.x, top=badguy.y)
+        badguy_rect = badguy.image.get_rect(left=badguy.x, top=badguy.y)
         if fighter_rect.collidepoint(badguy_rect.center):
             print(fighter_rect, badguy_rect, badguy_rect.center)
         return fighter_rect.collidepoint(badguy_rect.center)
@@ -109,7 +109,11 @@ class Badguy:
         self.d = (math.pi)*random.random()-(math.pi/4)
         self.dx = math.sin(self.d)*speed
         self.dy = math.cos(self.d)*speed
-        self.type = 1
+        self.type = random.randint(1, 3)
+        self.image = pygame.image.load("images/badguy.png").convert()
+        self.image.set_colorkey((0, 0, 0))
+        self.image = pygame.transform.scale(self.image, (100, 80))
+        self.rimage = pygame.transform.rotate(self.image, self.d)
 
 
     def move(self):
@@ -146,16 +150,17 @@ class Badguy:
             self.y += self.dy
 
     def touching(self,missile):
-        badguy_rect=badguy_image.get_rect(left=self.x, top=self.y)
+        badguy_rect=self.image.get_rect(left=self.x, top=self.y)
         missile_rect=missile_image.get_rect(left=missile.x, top=missile.y)
-        return badguy_rect.collidepoint(missile_rect.centerx, missile_rect.centery)
+        return badguy_rect.colliderect(missile_rect)
 
     def bounce(self):
         if self.x<0 or self.x>screen_x-50:
             self.dx *= -1
 
     def draw(self):
-        screen.blit(badguy_image,(self.x, self.y))
+        self.rimage = pygame.transform.rotate(self.image, math.degrees(random.random()*math.pi))
+        screen.blit(self.rimage,(self.x+self.rimage.get_width()/2, self.y+self.rimage.get_height()/2))
 
     def off_screen(self):
         return self.y >screen_y or self.y < -100
@@ -260,3 +265,4 @@ while True:
 
 
 #https://opengameart.org/
+#https://wikidocs.net/66237

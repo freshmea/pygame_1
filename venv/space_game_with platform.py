@@ -9,12 +9,18 @@ FPS =60
 TITLE = "Space Invaders"
 BGCOLOR = (0, 0, 0)
 WHITE = (255, 255, 255)
-
+BLACK = (0, 0, 0)
 fighter_speed = 6
 bullet_speed = 10
 badguy_speed = 15
 
 #font = pygame.font.SysFont('malgungothic', 36)
+def get_image(oimage, x, y, width, height):
+    image = pygame.Surface((width, height))
+    image.blit(oimage, (0, 0), (x, y, width, height))
+    image.set_colorkey(BLACK)
+
+    return image
 
 class Game:
     def __init__(self):
@@ -28,24 +34,27 @@ class Game:
 
     def load_data(self):
         self.dir = path.dirname(__file__)
+        # fighter 이미지
         self.fighter_image_1 = pygame.image.load("images/bat-a.png").convert()
         self.fighter_image_2 = pygame.image.load("images/bat-b.png").convert()
         self.fighter_image_3 = pygame.image.load("images/bat-c.png").convert()
         self.fighter_image_1 = pygame.transform.scale(self.fighter_image_1, (200, 100))
         self.fighter_image_2 = pygame.transform.scale(self.fighter_image_2, (200, 100))
         self.fighter_image_3 = pygame.transform.scale(self.fighter_image_3, (200, 100))
-        self.fighter_image_1.set_colorkey((0, 0, 0))
-        self.fighter_image_2.set_colorkey((0, 0, 0))
-        self.fighter_image_3.set_colorkey((0, 0, 0))
+        self.fighter_image_1.set_colorkey(BLACK)
+        self.fighter_image_2.set_colorkey(BLACK)
+        self.fighter_image_3.set_colorkey(BLACK)
+        #미사일 이미지
         self.missile_image = pygame.image.load("images/missile.png").convert()
         self.missile_image = pygame.transform.scale(self.missile_image, (20, 80))
         self.missile_image.set_colorkey((255, 255, 255))
+        #배경 이미지
         self.background = pygame.image.load('images/Nebula.png').convert()
         self.background = pygame.transform.scale(self.background, (WIDTH, HEIGHT))
-        self.badguy_image = pygame.image.load("images/badguy.png").convert()
-        self.badguy_image.set_colorkey((0, 0, 0))
-        self.badguy_image = pygame.transform.scale(self.badguy_image, (100, 80))
-        self.badguy_rimage = pygame.transform.rotate(self.badguy_image, 1)
+        #배드가이 이미지
+        self.badguy_image = pygame.image.load("images/pngwing.com.png").convert_alpha()
+
+        #미사일 사운드
         self.missile_sound = pygame.mixer.Sound("sound/synth_laser_03.ogg")
 
 
@@ -82,7 +91,7 @@ class Game:
                 self.missiles.remove(i)
                 self.fighter.misses += 1
 
-        #적 스폰
+        #배드가이 스폰
         global  last_badguy_spawn_time
         if time.time() - last_badguy_spawn_time > 0.2:
             self.badguys.append(Badguy(self))
@@ -210,7 +219,7 @@ class Fighter:
 
     def hit_by(self, badguy):
         fighter_rect = self.game.fighter_image_1.get_rect(left=self.x, top=self.y)
-        badguy_rect = self.game.badguy_image.get_rect(left=badguy.x, top=badguy.y)
+        badguy_rect = badguy.image.get_rect(left=badguy.x, top=badguy.y)
         return fighter_rect.collidepoint(badguy_rect.center)
 
     def draw(self):
@@ -252,30 +261,30 @@ class Badguy:
         self.d = (math.pi) * random.random() - (math.pi / 4)
         self.dx = math.sin(self.d) * speed
         self.dy = math.cos(self.d) * speed
-        self.type = random.randint(1, 3)
+        self.type = random.randint(1, 1)
         self.game = game
+        self.load_images()
+        self.image = self.image_frame[0]
+        self.last_update = 0
+        self.current_frame = 0
 
+    def load_images(self):
+        self.image_frame = [get_image(self.game.badguy_image, 0, 0, 500, 500),
+                                get_image(self.game.badguy_image, 540, 0, 500, 500), get_image(self.game.badguy_image, 1000, 0, 500, 500)]
+        for k, i in enumerate(self.image_frame):
+            self.image_frame[k] = pygame.transform.scale(i, (100, 100))
 
     def update(self):
+        self.animate()
         self.move()
         self.bounce()
 
     def move(self):
-        o = random.randint(1, 1000)
-        if o in range(1, 100):
-            self.type = 1
-        if o in range(100, 200):
-            self.type = 2
-        if o in range(200, 300):
-            self.type = 3
 
         if self.type == 1:
             speed = random.randint(2, badguy_speed)
-            self.dx = math.sin(self.d) * speed
-            self.dy = math.cos(self.d) * speed
-            self.x += self.dx
-            if self.dy < 0:
-                self.dy *= -1
+            self.dy = speed/2
+            self.x += random.randint(5,10)*math.sin(self.y/HEIGHT*10)
             self.y += self.dy
         if self.type == 2:
             speed = badguy_speed + 5
@@ -295,20 +304,29 @@ class Badguy:
 
 
     def touching(self, missile):
-        badguy_rect = self.game.badguy_image.get_rect(left=self.x, top=self.y)
+        badguy_rect = self.image.get_rect(left=self.x, top=self.y)
         missile_rect = self.game.missile_image.get_rect(left=missile.x, top=missile.y)
         return badguy_rect.colliderect(missile_rect)
 
     def bounce(self):
         if self.x < 0 or self.x > WIDTH - 50:
             self.dx *= -1
+            
+    def animate(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > 180:
+            self.last_update = now
+            self.current_frame += 1
+            if self.current_frame >2:
+                self.current_frame = 0
+            self.image = self.image_frame[self.current_frame]
 
     def draw(self):
-        self.game.badguy_rimage = pygame.transform.rotate(self.game.badguy_image, math.degrees(random.random() * math.pi))
-        self.game.screen.blit(self.game.badguy_rimage, (self.x + self.game.badguy_rimage.get_width() / 2, self.y + self.game.badguy_rimage.get_height() / 2))
+        self.game.screen.blit(self.image, (self.x, self.y))
 
     def off_screen(self):
         return self.y > HEIGHT or self.y < -100
+
 
 
 game = Game()

@@ -7,6 +7,9 @@ clock = pygame.time.Clock()
 font = pygame.font.SysFont('malgungothic', 36)
 
 charater_image = pygame.image.load("images/bat-a.png").convert()
+charater_image_2 = pygame.image.load("images/bomb.png").convert()
+charater_image = pygame.transform.scale(charater_image, (200, 200))
+charater_image_2 = pygame.transform.scale(charater_image_2, (200, 200))
 charater_image.set_colorkey((0, 0, 0))
 start_time = time.time()
 x=0
@@ -21,7 +24,6 @@ while True:
     pressed_keys = pygame.key.get_pressed()
     #3초 동안 방갑습니다. 출력하기
     if time.time() - start_time < 3:
-        print(time.time() - start_time)
         a=font.render('방갑습니다!!!', True, (255, 255, 255))
         screen.blit(a, (200, 400))
     if pressed_keys[K_a]:
@@ -32,6 +34,9 @@ while True:
         y -= 1
     if pressed_keys[K_s]:
         y += 1
-    screen.blit(charater_image, (x*5, y*5))
+    if time.time() - start_time < 3:
+        screen.blit(charater_image, (x*5, y*5))
+    else:
+        screen.blit(charater_image_2, (x * 5, y * 5))
     pygame.display.update()
 

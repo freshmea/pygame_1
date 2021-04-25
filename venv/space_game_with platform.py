@@ -1,17 +1,20 @@
 import pygame, sys, random, time, math
 from pygame.locals import *
+from os import path
 
 WIDTH = 640 * 2
 HEIGHT = 480 * 2
 last_badguy_spawn_time = 0
-font = pygame.font.SysFont('malgungothic', 36)
+FPS =60
+TITLE = "Space Invaders"
+BGCOLOR = (0, 0, 0)
+WHITE = (255, 255, 255)
 
 fighter_speed = 6
 bullet_speed = 10
 badguy_speed = 15
 
-start_time = 0
-
+#font = pygame.font.SysFont('malgungothic', 36)
 
 class Game:
     def __init__(self):
@@ -19,37 +22,41 @@ class Game:
         pygame.mixer.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
-        pygame.display.set_caption("Space Invaders")
+        self.running = True
+        pygame.display.set_caption(TITLE)
+        self.load_data()
 
     def load_data(self):
         self.dir = path.dirname(__file__)
-        img_dir = path.join(self.dir, 'images')
-        self.fighter_image = pygame.image.load("images/bat-a.png").convert()
-        fighter_image_1 = pygame.image.load("images/bat-a.png").convert()
-        fighter_image_2 = pygame.image.load("images/bat-b.png").convert()
-        fighter_image_3 = pygame.image.load("images/bat-c.png").convert()
-        fighter_image_1 = pygame.transform.scale(fighter_image_1, (200, 100))
-        fighter_image_2 = pygame.transform.scale(fighter_image_2, (200, 100))
-        fighter_image_3 = pygame.transform.scale(fighter_image_3, (200, 100))
-        fighter_image_1.set_colorkey((0, 0, 0))
-        fighter_image_2.set_colorkey((0, 0, 0))
-        fighter_image_3.set_colorkey((0, 0, 0))
-        missile_image = pygame.image.load("images/missile.png").convert()
-        missile_image = pygame.transform.scale(missile_image, (20, 80))
-        missile_image.set_colorkey((255, 255, 255))
-        background = pygame.image.load('images/Nebula.png').convert()
-        background = pygame.transform.scale(background, (WIDTH, HEIGHT))
+        self.fighter_image_1 = pygame.image.load("images/bat-a.png").convert()
+        self.fighter_image_2 = pygame.image.load("images/bat-b.png").convert()
+        self.fighter_image_3 = pygame.image.load("images/bat-c.png").convert()
+        self.fighter_image_1 = pygame.transform.scale(self.fighter_image_1, (200, 100))
+        self.fighter_image_2 = pygame.transform.scale(self.fighter_image_2, (200, 100))
+        self.fighter_image_3 = pygame.transform.scale(self.fighter_image_3, (200, 100))
+        self.fighter_image_1.set_colorkey((0, 0, 0))
+        self.fighter_image_2.set_colorkey((0, 0, 0))
+        self.fighter_image_3.set_colorkey((0, 0, 0))
+        self.missile_image = pygame.image.load("images/missile.png").convert()
+        self.missile_image = pygame.transform.scale(self.missile_image, (20, 80))
+        self.missile_image.set_colorkey((255, 255, 255))
+        self.background = pygame.image.load('images/Nebula.png').convert()
+        self.background = pygame.transform.scale(self.background, (WIDTH, HEIGHT))
+        self.badguy_image = pygame.image.load("images/badguy.png").convert()
+        self.badguy_image.set_colorkey((0, 0, 0))
+        self.badguy_image = pygame.transform.scale(self.badguy_image, (100, 80))
+        self.badguy_rimage = pygame.transform.rotate(self.badguy_image, 1)
+        self.missile_sound = pygame.mixer.Sound("sound/synth_laser_03.ogg")
 
-        missile_sound = pygame.mixer.Sound("sound/synth_laser_03.ogg")
 
     def new(self):
         self.score = 0
         self.badguys = []
-        self.fighter = Fighter()
+        self.fighter = Fighter(self)
         self.missiles = []
         self.start_time = time.time()
-        self.background_music = pygame.mixer.music.load("sound/01 - Opening.ogg")
-        self.pygame.mixer.music.play(-1)
+        pygame.mixer.music.load("sound/01 - Opening.ogg")
+        pygame.mixer.music.play(-1)
         self.run()
 
     def run(self):
@@ -63,7 +70,42 @@ class Game:
         pygame.mixer.music.fadeout(500)
 
     def update(self):
-        pass
+        # 스프라이트 업데이트
+        self.fighter.update()
+        for i in self.badguys:
+            i.update()
+            if i.off_screen():
+                self.badguys.remove(i)
+        for i in self.missiles:
+            i.update()
+            if i.off_screen():
+                self.missiles.remove(i)
+                self.fighter.misses += 1
+
+        #적 스폰
+        global  last_badguy_spawn_time
+        if time.time() - last_badguy_spawn_time > 0.2:
+            self.badguys.append(Badguy(self))
+            last_badguy_spawn_time = time.time()
+
+        #미사일 맞는 적
+        for i in self.badguys:
+            for j in self.missiles:
+                if i.touching(j):
+                    self.fighter.score += 100
+                    self.fighter.hits += 1
+                    self.badguys.remove(i)
+                    self.missiles.remove(j)
+                    break
+
+        #파이터가 적에 맞음
+        for i in self.badguys:
+            if self.fighter.hit_by(i):
+                self.playing = False
+
+        #시간 초과
+        if time.time() - self.start_time > 10:
+            self.playing = False
 
     def events(self):
 
@@ -71,56 +113,61 @@ class Game:
             if event.type == QUIT:
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
-                fighter.fire()
-        pressed_keys = pygame.key.get_pressed()
+                self.fighter.fire()
+        self.pressed_keys = pygame.key.get_pressed()
+
+    def draw(self):
+        self.screen.fill(BGCOLOR)
+        self.screen.blit(self.background, (0,0))
+        self.fighter.draw()
+        for i in self.badguys, self.missiles:
+            for j in i:
+                j.draw()
+        self.draw_text(f"점수: {self.fighter.score} 남은 시간:{10 - (time.time() - self.start_time):.2f}", 22, WHITE, WIDTH/2, 15)
+        pygame.display.update()
 
     def show_start_screen(self):
-        # game splash/start screen
-        pg.mixer.music.load(path.join(self.snd_dir, 'Yippee.ogg'))
-        pg.mixer.music.play(loops=-1)
+        # 시작 화면
+        pygame.mixer.music.load(path.join(self.dir, 'sound/01 - Opening.ogg'))
+        pygame.mixer.music.play(loops=-1)
         self.screen.fill(BGCOLOR)
         self.draw_text(TITLE, 48, WHITE, WIDTH / 2, HEIGHT / 4)
         self.draw_text("Arrows to move, Space to jump", 22, WHITE, WIDTH / 2, HEIGHT / 2)
         self.draw_text("Press a key to play", 22, WHITE, WIDTH / 2, HEIGHT * 3 / 4)
-        self.draw_text("High Score: " + str(self.highscore), 22, WHITE, WIDTH / 2, 15)
-        pg.display.flip()
+        self.draw_text("방갑습니다. 이제 게임을 시작합니다.", 22, WHITE, WIDTH / 2, 15)
+        pygame.display.flip()
         self.wait_for_key()
-        pg.mixer.music.fadeout(500)
+        pygame.mixer.music.fadeout(500)
 
     def show_go_screen(self):
-        # game over/continue
+        # 게임오버/ 계속
         if not self.running:
             return
-        pg.mixer.music.load(path.join(self.snd_dir, 'Yippee.ogg'))
-        pg.mixer.music.play(loops=-1)
-        self.screen.fill(BGCOLOR)
-        self.draw_text("GAME OVER", 48, WHITE, WIDTH / 2, HEIGHT / 4)
-        self.draw_text("Score: " + str(self.score), 22, WHITE, WIDTH / 2, HEIGHT / 2)
-        self.draw_text("Press a key to play again", 22, WHITE, WIDTH / 2, HEIGHT * 3 / 4)
-        if self.score > self.highscore:
-            self.highscore = self.score
-            self.draw_text("NEW HIGH SCORE!", 22, WHITE, WIDTH / 2, HEIGHT / 2 + 40)
-            with open(path.join(self.dir, HS_FILE), 'w') as f:
-                f.write(str(self.score))
-        else:
-            self.draw_text("High Score: " + str(self.highscore), 22, WHITE, WIDTH / 2, HEIGHT / 2 + 40)
-        pg.display.flip()
+        pygame.mixer.music.load(path.join(self.dir, 'sound/06 - Rebels Be.ogg'))
+        pygame.mixer.music.play(loops=-1)
+        self.screen.fill((0,0,0))
+        self.draw_text(f'당신이 쏜 총알의 수는: {self.fighter.shots}', 48, WHITE, WIDTH / 2, HEIGHT / 4)
+        self.draw_text(f'당신의 점수는 : {self.fighter.score}', 22, WHITE, WIDTH / 2, HEIGHT / 2)
+        self.draw_text(f'당신의 빗나간 총알 수는 :{self.fighter.misses}', 22, WHITE, WIDTH / 2, HEIGHT * 3 / 4)
+        self.draw_text(f'다시 하고 싶으면 스페이스키를 누루세요.', 22, WHITE, WIDTH / 2, HEIGHT * 3 / 4+100)
+        self.draw_text(f'당신이 맞춘 수는 : {self.fighter.hits}', 22, WHITE, WIDTH / 2, HEIGHT * 4 / 4-200)
+        pygame.display.update()
         self.wait_for_key()
-        pg.mixer.music.fadeout(500)
+        pygame.mixer.music.fadeout(500)
 
     def wait_for_key(self):
         waiting = True
         while waiting:
             self.clock.tick(FPS)
-            for event in pg.event.get():
-                if event.type == pg.QUIT:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
                     waiting = False
                     self.running = False
-                if event.type == pg.KEYUP:
+                if event.type == pygame.KEYDOWN and event.key == K_SPACE:
                     waiting = False
 
     def draw_text(self, text, size, color, x, y):
-        font = pg.font.Font(self.font_name, size)
+        font = pygame.font.SysFont('malgungothic', 36)
         text_surface = font.render(text, True, color)
         text_rect = text_surface.get_rect()
         text_rect.midtop = (x, y)
@@ -128,7 +175,7 @@ class Game:
 
 
 class Fighter:
-    def __init__(self):
+    def __init__(self, game):
         self.x = 320
         self.y = HEIGHT - 100
         self.dir = 0
@@ -136,50 +183,54 @@ class Fighter:
         self.hits = 0
         self.misses = 0
         self.score = 0
+        self.game = game
+
+    def update(self):
+        self.set_dir()
+        self.move()
 
     def set_dir(self):
         x, y = pygame.mouse.get_pos()
         self.dir = math.atan2(x - self.x, y - self.y) - math.pi / 2
 
     def move(self):
-        if pressed_keys[K_a] and self.x > 0:
+        if self.game.pressed_keys[K_a] and self.x > 0:
             self.x -= fighter_speed
-        if pressed_keys[K_d] and self.x < WIDTH - fighter_image_1.get_width():
+        if self.game.pressed_keys[K_d] and self.x < WIDTH - self.game.fighter_image_1.get_width():
             self.x += fighter_speed
-        if pressed_keys[K_w] and self.y > 0:
+        if self.game.pressed_keys[K_w] and self.y > 0:
             self.y -= fighter_speed
-        if pressed_keys[K_s] and self.y < HEIGHT - fighter_image_1.get_height():
+        if self.game.pressed_keys[K_s] and self.y < HEIGHT - self.game.fighter_image_1.get_height():
             self.y += fighter_speed
 
     def fire(self):
         self.shots += 1
-        missiles.append(Missile(self.x + fighter_image_1.get_width() / 2, self.y, self.dir))
-        missile_sound.play()
+        self.game.missiles.append(Missile(self.game, self.x + self.game.fighter_image_1.get_width() / 2, self.y, self.dir))
+        self.game.missile_sound.play()
 
     def hit_by(self, badguy):
-        fighter_rect = fighter_image_1.get_rect(left=self.x, top=self.y)
-        badguy_rect = badguy.image.get_rect(left=badguy.x, top=badguy.y)
-        if fighter_rect.collidepoint(badguy_rect.center):
-            print(fighter_rect, badguy_rect, badguy_rect.center)
+        fighter_rect = self.game.fighter_image_1.get_rect(left=self.x, top=self.y)
+        badguy_rect = self.game.badguy_image.get_rect(left=badguy.x, top=badguy.y)
         return fighter_rect.collidepoint(badguy_rect.center)
 
     def draw(self):
-        rotated_1 = pygame.transform.rotate(fighter_image_1, self.dir)
-        rotated_2 = pygame.transform.rotate(fighter_image_2, self.dir)
-        rotated_3 = pygame.transform.rotate(fighter_image_3, self.dir)
         if time.time() % 1 < 20 / 60:
-            screen.blit(rotated_1, (self.x, self.y))
+            self.game.screen.blit(self.game.fighter_image_1, (self.x, self.y))
         elif time.time() % 1 < 40 / 60:
-            screen.blit(rotated_2, (self.x, self.y))
+            self.game.screen.blit(self.game.fighter_image_2, (self.x, self.y))
         else:
-            screen.blit(rotated_3, (self.x, self.y))
+            self.game.screen.blit(self.game.fighter_image_3, (self.x, self.y))
 
 
 class Missile:
-    def __init__(self, x, y, dir):
+    def __init__(self, game, x, y, dir):
         self.x = x
         self.y = y
         self.dir = dir
+        self.game = game
+
+    def update(self):
+        self.move()
 
     def move(self):
         self.y -= bullet_speed * math.sin(self.dir)
@@ -190,11 +241,11 @@ class Missile:
 
     def draw(self):
         # pygame.draw.line(screen, (255,0,0), (self.x, self.y),(self.x, self.y+8), 1)
-        screen.blit(missile_image, (self.x, self.y))
+        self.game.screen.blit(self.game.missile_image, (self.x, self.y))
 
 
 class Badguy:
-    def __init__(self):
+    def __init__(self, game):
         self.x = random.randint(0, WIDTH - 10)
         self.y = -100
         speed = random.randint(2, badguy_speed)
@@ -202,10 +253,12 @@ class Badguy:
         self.dx = math.sin(self.d) * speed
         self.dy = math.cos(self.d) * speed
         self.type = random.randint(1, 3)
-        self.image = pygame.image.load("images/badguy.png").convert()
-        self.image.set_colorkey((0, 0, 0))
-        self.image = pygame.transform.scale(self.image, (100, 80))
-        self.rimage = pygame.transform.rotate(self.image, self.d)
+        self.game = game
+
+
+    def update(self):
+        self.move()
+        self.bounce()
 
     def move(self):
         o = random.randint(1, 1000)
@@ -240,9 +293,10 @@ class Badguy:
             self.x += self.dx
             self.y += self.dy
 
+
     def touching(self, missile):
-        badguy_rect = self.image.get_rect(left=self.x, top=self.y)
-        missile_rect = missile_image.get_rect(left=missile.x, top=missile.y)
+        badguy_rect = self.game.badguy_image.get_rect(left=self.x, top=self.y)
+        missile_rect = self.game.missile_image.get_rect(left=missile.x, top=missile.y)
         return badguy_rect.colliderect(missile_rect)
 
     def bounce(self):
@@ -250,8 +304,8 @@ class Badguy:
             self.dx *= -1
 
     def draw(self):
-        self.rimage = pygame.transform.rotate(self.image, math.degrees(random.random() * math.pi))
-        screen.blit(self.rimage, (self.x + self.rimage.get_width() / 2, self.y + self.rimage.get_height() / 2))
+        self.game.badguy_rimage = pygame.transform.rotate(self.game.badguy_image, math.degrees(random.random() * math.pi))
+        self.game.screen.blit(self.game.badguy_rimage, (self.x + self.game.badguy_rimage.get_width() / 2, self.y + self.game.badguy_rimage.get_height() / 2))
 
     def off_screen(self):
         return self.y > HEIGHT or self.y < -100
@@ -265,81 +319,6 @@ while game.running:
 
 pygame.quit()
 
-
-def ending():
-    ending_music = pygame.mixer.music.load("sound/06 - Rebels Be.ogg")
-    pygame.mixer.music.play()
-    screen.fill((0, 0, 0))
-    screen.blit(font.render(f'당신이 쏜 총알의 수는: {fighter.shots}', True, (255, 255, 255)), (WIDTH / 4, HEIGHT / 4))
-    screen.blit(font.render(f'당신의 점수는 : {fighter.score}', True, (255, 255, 255)), (WIDTH / 4, HEIGHT / 4 + 50))
-    screen.blit(font.render(f'당신이 맞춘 수는 : {fighter.hits}', True, (255, 255, 255)), (WIDTH / 4, HEIGHT / 2))
-    screen.blit(font.render(f'당신의 빗나간 총알 수는 :{fighter.misses}', True, (255, 255, 255)),
-                (WIDTH / 4, HEIGHT / 2 + 50))
-    if fighter.shots == 0:
-        screen.blit(font.render('---', True, (255, 255, 255)), (400, 357))
-    else:
-        screen.blit(font.render(f'당신의 적중률은 :{100 * fighter.hits / fighter.shots:.2f}', True, (255, 255, 255)),
-                    (WIDTH / 4, HEIGHT / 2 + 120))
-    screen.blit(font.render(f'다시 하고 싶으면 스페이스 키를 누루세요.', True, (255, 255, 255)),
-                (WIDTH / 4, HEIGHT / 2 + 160))
-    while True:
-        flag = 0
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                sys.exit()
-            if event.type == KEYDOWN and event.key == K_SPACE:
-                flag = 1
-                break
-
-        if flag == 1:
-            start()
-            break
-        pygame.display.update()
-
-
-start()
-
-while True:
-
-    if time.time() - last_badguy_spawn_time > 0.2:
-        badguys.append(Badguy())
-        last_badguy_spawn_time = time.time()
-
-    screen.fill((0, 0, 0))
-    screen.blit(background, (0, 0))
-    fighter.move()
-    fighter.set_dir()
-    fighter.draw()
-
-    for i in badguys:
-        for j in missiles:
-            if i.touching(j):
-                fighter.score += 100
-                fighter.hits += 1
-                badguys.remove(i)
-                missiles.remove(j)
-                break
-        i.move()
-        i.bounce()
-        i.draw()
-        if i.off_screen():
-            badguys.remove(i)
-
-    for i in badguys:
-        if fighter.hit_by(i):
-            ending()
-
-    for i in missiles:
-        i.move()
-        i.draw()
-        if i.off_screen():
-            missiles.remove(i)
-            fighter.misses += 1
-    if time.time() - start_time > 10:
-        ending()
-    screen.blit(font.render(f"점수: {fighter.score} 남은 시간:{10 - (time.time() - start_time):.2f}", True, (255, 255, 255)),
-                (5, 5))
-    pygame.display.update()
 
 # https://opengameart.org/
 # https://wikidocs.net/66237

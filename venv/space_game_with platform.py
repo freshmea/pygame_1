@@ -68,7 +68,7 @@ class Game:
         self.badguys = []
         self.fighter = Fighter(self)
         self.missiles = []
-        self.start_time = time.time()
+        self.start_time = pygame.time.get_ticks()
         pygame.mixer.music.load("sound/03 - HWV 56 - Why do the nations so furiously rage together.ogg")
         pygame.mixer.music.play(-1)
         self.run()
@@ -85,7 +85,7 @@ class Game:
 
     def update(self):
         #스테이지 업데이트
-        if pygame.time.get_ticks()/10000-self.stage > 0:
+        if (pygame.time.get_ticks()-self.start_time)/10000-self.stage > 0:
             self.stage += 1
             self.background= self.backgrounds[self.stage-1]
             if self.stage ==3:
@@ -127,7 +127,7 @@ class Game:
                 self.playing = True
 
         #시간 초과
-        if time.time() - self.start_time > GAME_LIMITETIME:
+        if (pygame.time.get_ticks() - self.start_time)/1000 > GAME_LIMITETIME:
             self.playing = False
 
     def events(self):
@@ -146,7 +146,7 @@ class Game:
         for i in self.badguys, self.missiles:
             for j in i:
                 j.draw()
-        self.draw_text(f"점수: {self.fighter.score} 남은 시간:{GAME_LIMITETIME - (time.time() - self.start_time):.2f} 스테이지 {self.stage}", 22, WHITE, WIDTH/2, 15)
+        self.draw_text(f"점수: {self.fighter.score} 남은 시간:{GAME_LIMITETIME - (pygame.time.get_ticks() - self.start_time)/1000:.2f} 스테이지 {self.stage}", 22, WHITE, WIDTH/2, 15)
         pygame.display.update()
 
     def show_start_screen(self):
@@ -158,8 +158,9 @@ class Game:
         self.draw_text("Arrows to move, Space to jump", 22, WHITE, WIDTH / 2, HEIGHT / 2)
         self.draw_text("Press a key to play", 22, WHITE, WIDTH / 2, HEIGHT * 3 / 4)
         self.draw_text("방갑습니다. 이제 게임을 시작합니다.", 22, WHITE, WIDTH / 2, 15)
-        pygame.display.flip()
+        pygame.display.update()
         self.wait_for_key()
+        self.new()
         pygame.mixer.music.fadeout(500)
 
     def show_go_screen(self):

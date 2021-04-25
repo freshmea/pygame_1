@@ -124,7 +124,7 @@ class Game:
         #파이터가 적에 맞음
         for i in self.badguys:
             if self.fighter.hit_by(i):
-                self.playing = True
+                self.playing = False
 
         #시간 초과
         if (pygame.time.get_ticks() - self.start_time)/1000 > GAME_LIMITETIME:
@@ -155,18 +155,15 @@ class Game:
         pygame.mixer.music.play(loops=-1)
         self.screen.fill(BGCOLOR)
         self.draw_text(TITLE, 48, WHITE, WIDTH / 2, HEIGHT / 4)
-        self.draw_text("Arrows to move, Space to jump", 22, WHITE, WIDTH / 2, HEIGHT / 2)
-        self.draw_text("Press a key to play", 22, WHITE, WIDTH / 2, HEIGHT * 3 / 4)
+        self.draw_text("w 는 위로, s 는 아래로, a 는 왼쪽, d 는 오른쪽, 마우스 클릭이 미사일 발사 입니다.", 22, WHITE, WIDTH / 2, HEIGHT / 2)
+        self.draw_text("스페이스키를 누루면 시작합니다. ", 22, WHITE, WIDTH / 2, HEIGHT * 3 / 4)
         self.draw_text("방갑습니다. 이제 게임을 시작합니다.", 22, WHITE, WIDTH / 2, 15)
         pygame.display.update()
         self.wait_for_key()
-        self.new()
         pygame.mixer.music.fadeout(500)
 
     def show_go_screen(self):
         # 게임오버/ 계속
-        if not self.running:
-            return
         pygame.mixer.music.load(path.join(self.dir, 'sound/06 - Rebels Be.ogg'))
         pygame.mixer.music.play(loops=-1)
         self.screen.fill((0,0,0))
@@ -177,7 +174,6 @@ class Game:
         self.draw_text(f'당신이 맞춘 수는 : {self.fighter.hits}', 22, WHITE, WIDTH / 2, HEIGHT * 4 / 4-200)
         pygame.display.update()
         self.wait_for_key()
-        self.new()
         pygame.mixer.music.fadeout(500)
 
     def wait_for_key(self):

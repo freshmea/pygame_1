@@ -1,8 +1,9 @@
 import pygame, sys, random, time, math
 from pygame.locals import *
 from os import path
+vec= pygame.math.Vector2
 
-WIDTH = 640 * 2
+WIDTH = 640 * 3
 HEIGHT = 480 * 2
 last_badguy_spawn_time = 0
 FPS =60
@@ -10,9 +11,10 @@ TITLE = "Space Invaders"
 BGCOLOR = (0, 0, 0)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-fighter_speed = 6
-bullet_speed = 10
+fighter_speed = 10
+bullet_speed = 20
 badguy_speed = 15
+GAME_LIMITETIME = 40
 
 #font = pygame.font.SysFont('malgungothic', 36)
 def get_image(oimage, x, y, width, height):
@@ -30,7 +32,10 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
         pygame.display.set_caption(TITLE)
+        self.backgrounds = []
         self.load_data()
+
+
 
     def load_data(self):
         self.dir = path.dirname(__file__)
@@ -38,33 +43,33 @@ class Game:
         self.fighter_image_1 = pygame.image.load("images/bat-a.png").convert()
         self.fighter_image_2 = pygame.image.load("images/bat-b.png").convert()
         self.fighter_image_3 = pygame.image.load("images/bat-c.png").convert()
-        self.fighter_image_1 = pygame.transform.scale(self.fighter_image_1, (200, 100))
-        self.fighter_image_2 = pygame.transform.scale(self.fighter_image_2, (200, 100))
-        self.fighter_image_3 = pygame.transform.scale(self.fighter_image_3, (200, 100))
-        self.fighter_image_1.set_colorkey(BLACK)
-        self.fighter_image_2.set_colorkey(BLACK)
-        self.fighter_image_3.set_colorkey(BLACK)
+
         #미사일 이미지
         self.missile_image = pygame.image.load("images/missile.png").convert()
         self.missile_image = pygame.transform.scale(self.missile_image, (20, 80))
         self.missile_image.set_colorkey((255, 255, 255))
         #배경 이미지
-        self.background = pygame.image.load('images/Nebula.png').convert()
-        self.background = pygame.transform.scale(self.background, (WIDTH, HEIGHT))
+        background_data=['images/Nebula.png', 'images/Space.png', 'images/Stars.png', 'images/Space City 1.png', 'images/Galaxy.png', 'images/Underwater 2.png', 'images/Stripes.png']
+        for i in background_data:
+            self.background = pygame.image.load(i).convert()
+            self.background = pygame.transform.scale(self.background, (WIDTH, HEIGHT))
+            self.backgrounds.append(self.background)
         #배드가이 이미지
         self.badguy_image = pygame.image.load("images/pngwing.com.png").convert_alpha()
 
         #미사일 사운드
         self.missile_sound = pygame.mixer.Sound("sound/synth_laser_03.ogg")
+        self.die_sound = pygame.mixer.Sound("sound/retro_die_03.ogg")
 
 
     def new(self):
+        self.stage = 0
         self.score = 0
         self.badguys = []
         self.fighter = Fighter(self)
         self.missiles = []
         self.start_time = time.time()
-        pygame.mixer.music.load("sound/01 - Opening.ogg")
+        pygame.mixer.music.load("sound/03 - HWV 56 - Why do the nations so furiously rage together.ogg")
         pygame.mixer.music.play(-1)
         self.run()
 
@@ -79,6 +84,14 @@ class Game:
         pygame.mixer.music.fadeout(500)
 
     def update(self):
+        #스테이지 업데이트
+        if pygame.time.get_ticks()/10000-self.stage > 0:
+            self.stage += 1
+            self.background= self.backgrounds[self.stage-1]
+            if self.stage ==3:
+                pygame.mixer.music.stop()
+                pygame.mixer.music.load("sound/04 - Sanctuary.ogg")
+                pygame.mixer.music.play(-1)
         # 스프라이트 업데이트
         self.fighter.update()
         for i in self.badguys:
@@ -93,7 +106,7 @@ class Game:
 
         #배드가이 스폰
         global  last_badguy_spawn_time
-        if time.time() - last_badguy_spawn_time > 0.2:
+        if time.time() - last_badguy_spawn_time > 0.4-self.stage/40:
             self.badguys.append(Badguy(self))
             last_badguy_spawn_time = time.time()
 
@@ -105,15 +118,16 @@ class Game:
                     self.fighter.hits += 1
                     self.badguys.remove(i)
                     self.missiles.remove(j)
+                    self.die_sound.play()
                     break
 
         #파이터가 적에 맞음
         for i in self.badguys:
             if self.fighter.hit_by(i):
-                self.playing = False
+                self.playing = True
 
         #시간 초과
-        if time.time() - self.start_time > 10:
+        if time.time() - self.start_time > GAME_LIMITETIME:
             self.playing = False
 
     def events(self):
@@ -132,7 +146,7 @@ class Game:
         for i in self.badguys, self.missiles:
             for j in i:
                 j.draw()
-        self.draw_text(f"점수: {self.fighter.score} 남은 시간:{10 - (time.time() - self.start_time):.2f}", 22, WHITE, WIDTH/2, 15)
+        self.draw_text(f"점수: {self.fighter.score} 남은 시간:{GAME_LIMITETIME - (time.time() - self.start_time):.2f} 스테이지 {self.stage}", 22, WHITE, WIDTH/2, 15)
         pygame.display.update()
 
     def show_start_screen(self):
@@ -162,6 +176,7 @@ class Game:
         self.draw_text(f'당신이 맞춘 수는 : {self.fighter.hits}', 22, WHITE, WIDTH / 2, HEIGHT * 4 / 4-200)
         pygame.display.update()
         self.wait_for_key()
+        self.new()
         pygame.mixer.music.fadeout(500)
 
     def wait_for_key(self):
@@ -187,34 +202,56 @@ class Fighter:
     def __init__(self, game):
         self.x = 320
         self.y = HEIGHT - 100
-        self.dir = 0
+        self.dir = vec(0, 0)
         self.shots = 0
         self.hits = 0
         self.misses = 0
         self.score = 0
         self.game = game
+        self.load_image()
+        self.image= self.image_frame[0]
+        self.current_frame = 0
+        self.last_update = 0
+
+    def load_image(self):
+        self.image_frame = [get_image(self.game.fighter_image_1, 0, 0, self.game.fighter_image_1.get_width(), self.game.fighter_image_1.get_height()),
+                            get_image(self.game.fighter_image_2, 0, 0, self.game.fighter_image_2.get_width(), self.game.fighter_image_2.get_height()),
+                            get_image(self.game.fighter_image_3, 0, 0, self.game.fighter_image_3.get_width(), self.game.fighter_image_3.get_height())]
+        for k, i in enumerate(self.image_frame):
+            self.image_frame[k] = pygame.transform.scale(i, (200, 100))
 
     def update(self):
         self.set_dir()
+        self.animate()
         self.move()
+
+    def animate(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > 180:
+            self.last_update = now
+            self.current_frame += 1
+            if self.current_frame > 2:
+                self.current_frame = 0
+            self.image = self.image_frame[self.current_frame]
 
     def set_dir(self):
         x, y = pygame.mouse.get_pos()
-        self.dir = math.atan2(x - self.x, y - self.y) - math.pi / 2
+        self.dir = vec(x - self.x , y - self.y)
+        self.dir = self.dir / self.dir.length()
 
     def move(self):
         if self.game.pressed_keys[K_a] and self.x > 0:
             self.x -= fighter_speed
-        if self.game.pressed_keys[K_d] and self.x < WIDTH - self.game.fighter_image_1.get_width():
+        if self.game.pressed_keys[K_d] and self.x < WIDTH - self.image.get_width():
             self.x += fighter_speed
         if self.game.pressed_keys[K_w] and self.y > 0:
             self.y -= fighter_speed
-        if self.game.pressed_keys[K_s] and self.y < HEIGHT - self.game.fighter_image_1.get_height():
+        if self.game.pressed_keys[K_s] and self.y < HEIGHT - self.image.get_height():
             self.y += fighter_speed
 
     def fire(self):
         self.shots += 1
-        self.game.missiles.append(Missile(self.game, self.x + self.game.fighter_image_1.get_width() / 2, self.y, self.dir))
+        self.game.missiles.append(Missile(self.game, self.x + self.image.get_width() / 2, self.y, self.dir))
         self.game.missile_sound.play()
 
     def hit_by(self, badguy):
@@ -223,12 +260,7 @@ class Fighter:
         return fighter_rect.collidepoint(badguy_rect.center)
 
     def draw(self):
-        if time.time() % 1 < 20 / 60:
-            self.game.screen.blit(self.game.fighter_image_1, (self.x, self.y))
-        elif time.time() % 1 < 40 / 60:
-            self.game.screen.blit(self.game.fighter_image_2, (self.x, self.y))
-        else:
-            self.game.screen.blit(self.game.fighter_image_3, (self.x, self.y))
+            self.game.screen.blit(self.image, (self.x, self.y))
 
 
 class Missile:
@@ -237,20 +269,26 @@ class Missile:
         self.y = y
         self.dir = dir
         self.game = game
+        self.image = self.game.missile_image
+        self.image = pygame.transform.rotate(self.image, self.dir.angle_to(vec(0,0))-90 )
 
     def update(self):
         self.move()
+        self.animate()
+
+    def animate(self):
+        pass
+
 
     def move(self):
-        self.y -= bullet_speed * math.sin(self.dir)
-        self.x += bullet_speed * math.cos(self.dir)
+        self.y += bullet_speed * self.dir.y
+        self.x += bullet_speed * self.dir.x
 
     def off_screen(self):
         return self.y < -8 or self.y > HEIGHT or self.x < -8 or self.x > WIDTH
 
     def draw(self):
-        # pygame.draw.line(screen, (255,0,0), (self.x, self.y),(self.x, self.y+8), 1)
-        self.game.screen.blit(self.game.missile_image, (self.x, self.y))
+        self.game.screen.blit(self.image, (self.x, self.y))
 
 
 class Badguy:
@@ -258,11 +296,14 @@ class Badguy:
         self.x = random.randint(0, WIDTH - 10)
         self.y = -100
         speed = random.randint(2, badguy_speed)
-        self.d = (math.pi) * random.random() - (math.pi / 4)
-        self.dx = math.sin(self.d) * speed
-        self.dy = math.cos(self.d) * speed
-        self.type = random.randint(1, 1)
+        self.d = vec(random.randint(-5, 5), random.randint(-5, 5))
+        if self.d.length() !=0:
+            self.d.normalize()
+        self.dir = math.radians(self.d.angle_to(vec(0,0)))
+        self.dx = self.d.x * speed
+        self.dy = self.d.y * speed
         self.game = game
+        self.type = random.randint(1, self.game.stage)
         self.load_images()
         self.image = self.image_frame[0]
         self.last_update = 0
@@ -287,24 +328,28 @@ class Badguy:
             self.x += random.randint(5,10)*math.sin(self.y/HEIGHT*10)
             self.y += self.dy
         if self.type == 2:
-            speed = badguy_speed + 5
-            self.d += math.pi / 10
-            self.dx = math.sin(self.d) * speed
-            self.dy = math.cos(self.d) * speed
+            speed = badguy_speed
+            self.dir += math.pi / 50
+            self.dx = math.sin(self.dir) * speed
+            self.dy = math.cos(self.dir) * speed
             self.x += self.dx
-            self.y += self.dy
+            self.y += self.dy+5
         if self.type == 3:
             speed = random.randint(10, badguy_speed + 5)
-            self.dx = math.sin(self.d) * speed
-            self.dy = math.cos(self.d) * speed
-            if self.dy < 0:
-                self.dy *= -1
+            self.d = vec(self.game.fighter.x-self.x, self.game.fighter.y-self.y)
+            self.d = self.d /self.d.length()
+            self.dx = self.d.x * speed/3
+            self.dy = self.d.y * speed/3
             self.x += self.dx
             self.y += self.dy
 
 
     def touching(self, missile):
         badguy_rect = self.image.get_rect(left=self.x, top=self.y)
+        badguy_rect.w *= 0.5
+        badguy_rect.h *= 0.5
+        badguy_rect.x += badguy_rect.w
+        badguy_rect.y += badguy_rect.h
         missile_rect = self.game.missile_image.get_rect(left=missile.x, top=missile.y)
         return badguy_rect.colliderect(missile_rect)
 
@@ -320,6 +365,10 @@ class Badguy:
             if self.current_frame >2:
                 self.current_frame = 0
             self.image = self.image_frame[self.current_frame]
+        if self.type == 3 :
+            x = int(100*(0.5+(now % 1000)/1000))
+            y = int(100*(0.5+(now % 1000)/1000))
+            self.image = pygame.transform.scale(self.image, (x, y) )
 
     def draw(self):
         self.game.screen.blit(self.image, (self.x, self.y))

@@ -14,9 +14,9 @@ BLACK = (0, 0, 0)
 fighter_speed = 10
 bullet_speed = 20
 badguy_speed = 15
-GAME_LIMITETIME = 40
+GAME_LIMITETIME = 69
 
-#font = pygame.font.SysFont('malgungothic', 36)
+
 def get_image(oimage, x, y, width, height):
     image = pygame.Surface((width, height))
     image.blit(oimage, (0, 0), (x, y, width, height))
@@ -106,7 +106,7 @@ class Game:
 
         #배드가이 스폰
         global  last_badguy_spawn_time
-        if time.time() - last_badguy_spawn_time > 0.4-self.stage/40:
+        if time.time() - last_badguy_spawn_time > 0.4-self.stage/30:
             self.badguys.append(Badguy(self))
             last_badguy_spawn_time = time.time()
 
@@ -124,11 +124,12 @@ class Game:
         #파이터가 적에 맞음
         for i in self.badguys:
             if self.fighter.hit_by(i):
-                self.playing = False
+                self.playing = True
 
         #시간 초과
         if (pygame.time.get_ticks() - self.start_time)/1000 > GAME_LIMITETIME:
             self.playing = False
+            print(self.stage)
 
     def events(self):
 
@@ -167,6 +168,8 @@ class Game:
         pygame.mixer.music.load(path.join(self.dir, 'sound/06 - Rebels Be.ogg'))
         pygame.mixer.music.play(loops=-1)
         self.screen.fill((0,0,0))
+        if self.stage == 7:
+            self.draw_text(f'당신은 모든 게임을 클리어 했습니다!!{self.stage} 성공!!', 48, WHITE, WIDTH / 2, HEIGHT / 4-100)
         self.draw_text(f'당신이 쏜 총알의 수는: {self.fighter.shots}', 48, WHITE, WIDTH / 2, HEIGHT / 4)
         self.draw_text(f'당신의 점수는 : {self.fighter.score}', 22, WHITE, WIDTH / 2, HEIGHT / 2)
         self.draw_text(f'당신의 빗나간 총알 수는 :{self.fighter.misses}', 22, WHITE, WIDTH / 2, HEIGHT * 3 / 4)
@@ -252,7 +255,7 @@ class Fighter:
         self.game.missile_sound.play()
 
     def hit_by(self, badguy):
-        fighter_rect = self.game.fighter_image_1.get_rect(left=self.x, top=self.y)
+        fighter_rect = self.image.get_rect(left=self.x, top=self.y)
         badguy_rect = badguy.image.get_rect(left=badguy.x, top=badguy.y)
         return fighter_rect.collidepoint(badguy_rect.center)
 
@@ -293,7 +296,7 @@ class Badguy:
         self.x = random.randint(0, WIDTH - 10)
         self.y = -100
         speed = random.randint(2, badguy_speed)
-        self.d = vec(random.randint(-5, 5), random.randint(-5, 5))
+        self.d = vec(random.randint(-5, 5), random.randint(0, 5))
         if self.d.length() !=0:
             self.d.normalize()
         self.dir = math.radians(self.d.angle_to(vec(0,0)))
@@ -334,11 +337,15 @@ class Badguy:
         if self.type == 3:
             speed = random.randint(10, badguy_speed + 5)
             self.d = vec(self.game.fighter.x-self.x, self.game.fighter.y-self.y)
-            self.d = self.d /self.d.length()
+            if self.d.length() != 0:
+                self.d = self.d /self.d.length()
             self.dx = self.d.x * speed/3
             self.dy = self.d.y * speed/3
             self.x += self.dx
             self.y += self.dy
+        if self.type == 4:
+            self.x += self.dx/2
+            self.y += self.dy/2
 
 
     def touching(self, missile):

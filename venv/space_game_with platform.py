@@ -32,17 +32,20 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
         pygame.display.set_caption(TITLE)
-        self.backgrounds = []
+
         self.load_data()
 
 
 
     def load_data(self):
+        self.backgrounds = []
+        self.fighters = []
         self.dir = path.dirname(__file__)
         # fighter 이미지
-        self.fighter_image_1 = pygame.image.load("images/bat-a.png").convert()
-        self.fighter_image_2 = pygame.image.load("images/bat-b.png").convert()
-        self.fighter_image_3 = pygame.image.load("images/bat-c.png").convert()
+        fighter_data = ["images/pngegg.png"]
+        for i in fighter_data:
+            self.fighter_image = pygame.image.load(i).convert_alpha()
+            self.fighters.append(self.fighter_image)
 
         #미사일 이미지
         self.missile_image = pygame.image.load("images/missile.png").convert()
@@ -214,9 +217,11 @@ class Fighter:
         self.last_update = 0
 
     def load_image(self):
-        self.image_frame = [get_image(self.game.fighter_image_1, 0, 0, self.game.fighter_image_1.get_width(), self.game.fighter_image_1.get_height()),
-                            get_image(self.game.fighter_image_2, 0, 0, self.game.fighter_image_2.get_width(), self.game.fighter_image_2.get_height()),
-                            get_image(self.game.fighter_image_3, 0, 0, self.game.fighter_image_3.get_width(), self.game.fighter_image_3.get_height())]
+        self.image_frame = [get_image(self.game.fighters[0], 400, 450, 200,100),
+                            get_image(self.game.fighters[0], 600, 450, 200,100),
+                            get_image(self.game.fighters[0], 200, 450, 200,100),
+                            get_image(self.game.fighters[0], 400, 50, 200,100),
+                            get_image(self.game.fighters[0], 400, 850, 200,100)]
         for k, i in enumerate(self.image_frame):
             self.image_frame[k] = pygame.transform.scale(i, (200, 100))
 
@@ -233,6 +238,16 @@ class Fighter:
             if self.current_frame > 2:
                 self.current_frame = 0
             self.image = self.image_frame[self.current_frame]
+        if self.game.pressed_keys[K_a] :
+            self.image = self.image_frame[2]
+        elif self.game.pressed_keys[K_d] :
+            self.image = self.image_frame[1]
+        elif self.game.pressed_keys[K_w] :
+            self.image = self.image_frame[3]
+        elif self.game.pressed_keys[K_s] :
+            self.image = self.image_frame[4]
+        else:
+            self.image = self.image_frame[0]
 
     def set_dir(self):
         x, y = pygame.mouse.get_pos()

@@ -126,7 +126,7 @@ class Game:
         # 파이터가 적에 맞음
         for i in self.badguys:
             if self.fighter.hit_by(i):
-                self.playing = True
+                self.playing = False
 
         # 시간 초과
         if (pygame.time.get_ticks() - self.start_time) / 1000 > GAME_LIMITETIME:
@@ -195,7 +195,7 @@ class Game:
                     waiting = False
 
     def draw_text(self, text, size, color, x, y):
-        font = pygame.font.SysFont('malgungothic', 36)
+        font = pygame.font.SysFont('malgungothic', size)
         text_surface = font.render(text, True, color)
         text_rect = text_surface.get_rect()
         text_rect.midtop = (x, y)
@@ -274,6 +274,7 @@ class Fighter:
 
 class Missile:
     def __init__(self, game, x, y, dir):
+        self.speed = bullet_speed
         self.x = x
         self.y = y
         self.dir = dir
@@ -289,8 +290,8 @@ class Missile:
         pass
 
     def move(self):
-        self.y += bullet_speed * self.dir.y
-        self.x += bullet_speed * self.dir.x
+        self.y += self.speed * self.dir.y
+        self.x += self.speed * self.dir.x
 
     def off_screen(self):
         return self.y < -8 or self.y > HEIGHT or self.x < -8 or self.x > WIDTH

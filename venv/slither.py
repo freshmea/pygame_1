@@ -1,15 +1,21 @@
 import pygame
+import math
 from pygame.locals import *
+
+vec = pygame.math.Vector2
 
 WIDTH = 640*2
 HEIGHT = 480*2
 TITLE = 'withpaint'
 BLACK = (0,0,0)
+YELLOW = (125, 125, 0)
 WHITE = (255,255,255)
 FPS = 60
+SLITHER_SPEED = 5
+START_SCORE = 100
 
 
-class Paint:
+class Game:
     def __init__(self):
         pygame.init()
         pygame.mixer.init()
@@ -18,68 +24,44 @@ class Paint:
         self.running = True
         pygame.display.set_caption(TITLE)
         self.load_data()
-        self.pencil = Pencil(self)
-        self.k=0
-
+        self.slither = Slither(self)
     def load_data(self):
-        pass
+        self.background = pygame.image.load('images/Stars.png').convert_alpha()
+        self.background = pygame.transform.scale(self.background, (WIDTH, HEIGHT))
 
     def new(self):
-        pass
-
-    def update(self):
-        if self.pressed_keys[K_1] and self.k > 0:
-            self.k -= 5
-        if self.pressed_keys[K_2] and self.k < 255:
-            self.k += 5
-        if self.pressed_keys[K_3] and self.pencil.bold > 1:
-            self.pencil.bold -= 1
-        if self.pressed_keys[K_4] and self.pencil.bold < 50:
-            self.pencil.bold += 1
-        if self.pressed_keys[K_ESCAPE]:
-            self.pencil.datas = []
+        self.slither = Slither(self)
 
     def run(self):
-        #pygame.mixer.music.play(-1)
         self.playing = True
         while self.playing:
             self.clock.tick(FPS)
             self.events()
             self.update()
             self.draw()
-        #pygame.mixer.music.fadeout(500)
+
+    def update(self):
+        self.slither.update()
+        if self.slither.crash():
+            self.playing = False
 
     def events(self):
-
         for event in pygame.event.get():
             if event.type == QUIT:
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
-                x, y = pygame.mouse.get_pos()
-                if x<255 and y<255:
-                    self.pencil.chang_color((x,y,self.k))
-                else:
-                    self.pencil.on = True
-            if event.type == pygame.MOUSEBUTTONUP:
-                self.pencil.on = False
-        self.pencil.update()
+                pass
         self.pressed_keys = pygame.key.get_pressed()
-        self.pencil.expos = self.pencil.pos
+
 
     def draw(self):
         self.screen.fill(BLACK)
-        #self.screen.blit(self.background, (0, 0))
-        self.pencil.draw()
-        self.draw_color_circle()
-        self.draw_text(f"색상환:{self.k} 펜 색상{self.pencil.color} 굵기 {self.pencil.bold} ", 22, WHITE, WIDTH / 2, 15)
+        self.screen.blit(self.background, (0, 0))
+        self.slither.draw()
+        self.draw_text(f"점수:{self.slither.score}  남은 시간: 스테이지",22, WHITE, WIDTH / 2, 15)
         pygame.display.update()
 
-
-
     def show_start_screen(self):
-        # 시작 화면
-        # pygame.mixer.music.load('sound/01 - Opening.ogg')
-        # pygame.mixer.music.play(loops=-1)
         self.screen.fill(BLACK)
         self.draw_text(TITLE, 48, WHITE, WIDTH / 2, HEIGHT / 4)
         self.draw_text("위드 페인트 게임을 시작합니다. ", 22, WHITE, WIDTH / 2, HEIGHT / 2)
@@ -91,9 +73,6 @@ class Paint:
         self.run()
 
     def show_go_screen(self):
-        # 게임오버/ 계속
-        # pygame.mixer.music.load('sound/06 - Rebels Be.ogg')
-        # pygame.mixer.music.play(loops=-1)
         self.screen.fill(BLACK)
         self.draw_text(f'당신이 쏜 총알의 수는: ', 48, WHITE, WIDTH / 2, HEIGHT / 4)
         self.draw_text(f'당신의 점수는 : ', 22, WHITE, WIDTH / 2, HEIGHT / 2)
@@ -102,7 +81,7 @@ class Paint:
         self.draw_text(f'당신이 맞춘 수는 : ', 22, WHITE, WIDTH / 2, HEIGHT * 4 / 4 - 200)
         pygame.display.update()
         self.wait_for_key()
-        pygame.mixer.music.fadeout(500)
+        self.run()
 
     def wait_for_key(self):
         waiting = True
@@ -122,38 +101,38 @@ class Paint:
         text_rect.midtop = (x, y)
         self.screen.blit(text_surface, text_rect)
 
-    def draw_color_circle(self):
-        for i in range(256):
-            for j in range(256):
-                    pygame.draw.line(self.screen, (i,j,self.k), (i,j), (i,j), 1)
-
-
-class Pencil:
+class Slither:
     def __init__(self, game):
         self.game = game
-        self.pos =(0,0)
-        self.expos = (0,0)
-        self.color = WHITE
-        self.bold = 3
-        self.datas = []
-        self.on = False
+        self.pos= vec(WIDTH/2, HEIGHT/2)
+        self.vel = vec(0, 0)
+        self.data = [vec(WIDTH/2, HEIGHT/2), vec(WIDTH/2, HEIGHT/2), vec(WIDTH/2, HEIGHT/2)]
+        self.score = START_SCORE
+    def update(self):
+        mouse = vec(pygame.mouse.get_pos())
+        self.vel = self.pos - mouse
+        self.vel = self.vel.normalize()
+        self.pos -= self.vel*SLITHER_SPEED
+        pos = vec(self.pos.x, self.pos.y)
+        self.data.append(pos)
+        while len(self.data) > self.score:
+            del self.data[0]
 
     def draw(self):
-        for i in self.datas:
-            if i[3]>10:
-                pygame.draw.circle(self.game.screen, i[0], i[2], i[3])
-            pygame.draw.line(self.game.screen, i[0], i[1], i[2], i[3])
+        for i in self.data:
+            pygame.draw.circle(self.game.screen, YELLOW, i, 10)
 
-    def chang_color(self, colorkey):
-        self.color=colorkey
+    def crash(self):
+        crash = False
+        for i in self.data:
+            print(len(self.data)-self.data.index(i))
+            if len(self.data)-self.data.index(i) > 10:
+                crash = pygame.Rect(self.data[-1].x, self.data[-1].y, 10, 10).colliderect(pygame.Rect(i.x, i.y, 10,10))
+                if crash == True:
+                    return crash
 
-    def update(self):
-        self.pos = pygame.mouse.get_pos()
-        if self.pos != self.expos and self.on:
-            self.datas.append([self.color, self.expos, self.pos, self.bold])
 
-
-game = Paint()
+game = Game()
 game.show_start_screen()
 while game.running:
     game.new()

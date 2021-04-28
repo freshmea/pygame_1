@@ -1,8 +1,9 @@
 import pygame
 
+
 size = width, height = 800, 600
 win = pygame.display.set_mode(size)
-bg = pygame.transform.rotozoom(pygame.image.load('Flat Nature Art.png'), 0, 0.85)
+bg = pygame.transform.rotozoom(pygame.image.load('images/Space.png'), 0, 0.85)
 char1 = pygame.transform.rotozoom(pygame.image.load('png/Walk (1).png'), 0, 0.35)
 char2 = pygame.transform.rotozoom(pygame.transform.flip(pygame.image.load('png/Walk (1).png'), True, False), 0, 0.35)
 
@@ -81,7 +82,7 @@ while run:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
-        if event.type == KEYUP:
+        if event.type == pygame.KEYUP:
             if right:
                 right = False
                 stopd = True

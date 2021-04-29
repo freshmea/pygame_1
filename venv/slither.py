@@ -9,7 +9,7 @@ vec = pygame.math.Vector2
 
 WIDTH = 640*3
 HEIGHT = 480*2
-TITLE = 'withpaint'
+TITLE = 'slither'
 BLACK = (0,0,0)
 YELLOW = (125, 125, 0)
 WHITE = (255,255,255)

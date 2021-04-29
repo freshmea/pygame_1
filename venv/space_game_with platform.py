@@ -1,6 +1,11 @@
-import pygame, sys, random, time, math
-from pygame.locals import *
 from os import path
+
+import math
+import pygame
+import random
+import sys
+import time
+from pygame.locals import *
 
 vec = pygame.math.Vector2
 
@@ -20,7 +25,7 @@ GAME_LIMITETIME = 69
 
 def get_image(oimage, x, y, width, height):
     image = pygame.Surface((width, height))
-    image.blit(oimage, (0, 0), (x, y, width, height))
+    image.blit(oimage, (0, 0), pygame.Rect(x, y, width, height))
     image.set_colorkey(BLACK)
 
     return image
@@ -203,7 +208,7 @@ class Game:
 
 
 class Fighter:
-    def __init__(self, game):
+    def __init__(self, out_game):
         self.x = 320
         self.y = HEIGHT - 100
         self.dir = vec(0, 0)
@@ -211,7 +216,7 @@ class Fighter:
         self.hits = 0
         self.misses = 0
         self.score = 0
-        self.game = game
+        self.game = out_game
         self.load_image()
         self.image = self.image_frame[0]
         self.current_frame = 0

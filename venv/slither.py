@@ -1,18 +1,18 @@
 import random
 
 import pygame
-import math
+#import math
 import sys
 from pygame.locals import *
 
 vec = pygame.math.Vector2
 
-WIDTH = 640*3
-HEIGHT = 480*2
-TITLE = 'withpaint'
-BLACK = (0,0,0)
+WIDTH = 640 * 3
+HEIGHT = 480 * 2
+TITLE = 'Slither'
+BLACK = (0, 0, 0)
 YELLOW = (125, 125, 0)
-WHITE = (255,255,255)
+WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 FPS = 60
 SLITHER_SPEED = 5
@@ -51,16 +51,16 @@ class Game:
     def update(self):
         self.slither.update()
 
-        #지렁이 충돌 확인
+        # 지렁이 충돌 확인
         if self.slither.crash():
             self.playing = False
 
         # 피자 생산
-        if pygame.time.get_ticks()-self.spwntime > 1000 and len(self.pizzas) < 10 :
+        if pygame.time.get_ticks() - self.spwntime > 1000 and len(self.pizzas) < 10:
             self.pizzas.append(Pizza(self))
             self.spwntime = pygame.time.get_ticks()
 
-        #지렁이가 피자 먹었는지 확인
+        # 지렁이가 피자 먹었는지 확인
         for i in self.pizzas:
             if self.slither.eat(i):
                 self.pizzas.remove(i)
@@ -74,14 +74,13 @@ class Game:
                 pass
         self.pressed_keys = pygame.key.get_pressed()
 
-
     def draw(self):
         self.screen.fill(BLACK)
         self.screen.blit(self.background, (0, 0))
         self.slither.draw()
         for i in self.pizzas:
             i.draw()
-        self.draw_text(f"점수:{self.slither.score}  남은 시간: 스테이지",22, WHITE, WIDTH / 2, 15)
+        self.draw_text(f"점수:{self.slither.score}  남은 시간: 스테이지", 22, WHITE, WIDTH / 2, 15)
         pygame.display.update()
 
     def show_start_screen(self):
@@ -124,18 +123,20 @@ class Game:
         text_rect.midtop = (x, y)
         self.screen.blit(text_surface, text_rect)
 
+
 class Slither:
-    def __init__(self, game):
-        self.game = game
-        self.pos= vec(WIDTH/2, HEIGHT/2)
+    def __init__(self, game_out):
+        self.game = game_out
+        self.pos = vec(WIDTH / 2, HEIGHT / 2)
         self.vel = vec(0, 0)
-        self.data = [vec(WIDTH/2, HEIGHT/2), vec(WIDTH/2, HEIGHT/2), vec(WIDTH/2, HEIGHT/2)]
+        self.data = [vec(WIDTH / 2, HEIGHT / 2), vec(WIDTH / 2, HEIGHT / 2), vec(WIDTH / 2, HEIGHT / 2)]
         self.score = START_SCORE
+
     def update(self):
         mouse = vec(pygame.mouse.get_pos())
         self.vel = self.pos - mouse
         self.vel = self.vel.normalize()
-        self.pos -= self.vel*SLITHER_SPEED
+        self.pos -= self.vel * SLITHER_SPEED
         pos = vec(self.pos.x, self.pos.y)
         self.data.append(pos)
         while len(self.data) > self.score:
@@ -148,13 +149,15 @@ class Slither:
     def crash(self):
         crash = False
         for i in self.data:
-            if len(self.data)-self.data.index(i) > 10:
-                crash = pygame.Rect(self.data[-1].x, self.data[-1].y, 10, 10).colliderect(pygame.Rect(i.x, i.y, 10,10))
-                if crash == True:
+            if len(self.data) - self.data.index(i) > 10:
+                crash = pygame.Rect(self.data[-1].x, self.data[-1].y, 10, 10).colliderect(pygame.Rect(i.x, i.y, 10, 10))
+                if crash:
                     return crash
 
     def eat(self, pizza):
-        return pygame.Rect(self.data[-1].x-5, self.data[-1].y-5, 10, 10).colliderect(pygame.Rect(pizza.pos.x-20, pizza.pos.y-20, 40, 40))
+        return pygame.Rect(self.data[-1].x - 5, self.data[-1].y - 5, 10, 10).colliderect(
+            pygame.Rect(pizza.pos.x - 20, pizza.pos.y - 20, 40, 40))
+
 
 class Pizza:
     def __init__(self, game):

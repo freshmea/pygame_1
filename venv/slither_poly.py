@@ -71,13 +71,13 @@ class Game:
                 self.playing = False
 
         #지렁이들의 충돌 확인
-        for i in self.slithers[1:]:
-            for j in self.slithers:
-                if i.crash(j):
-                    try:
-                        self.slithers.remove(i)
-                    except:
-                        pass
+        # for i in self.slithers[1:]:
+        #     for j in self.slithers:
+        #         if i.crash(j):
+        #             try:
+        #                 self.slithers.remove(i)
+        #             except:
+        #                 pass
 
 
         # 피자 생산
@@ -167,6 +167,7 @@ class Slither:
         self.spwntime1 = 0
         self.type = type
         self.color = random.choice([YELLOW, BLACK, WHITE, GREEN, RED, BLUE])
+        self.data_poly = []
 
     def update(self):
         if self.type == 1:
@@ -174,23 +175,34 @@ class Slither:
             mouse = mouse - vec(-self.data[-1].x+WIDTH/2, -self.data[-1].y+HEIGHT/2)
         elif self.type == 2:
             mouse = vec(self.ai())
-        self.vel = self.pos - mouse
+        self.vel = mouse - self.pos
         self.vel = self.vel.normalize()
-        self.pos -= self.vel*SLITHER_SPEED
+        self.pos += self.vel*SLITHER_SPEED
         pos = vec(self.pos.x, self.pos.y)
+        vel = self.vel
         self.data.append(pos)
-        print(pos, self.vel, self.vel.angle_to(vec(0,0)))
+        self.data_poly.append([pos,vel])
         while len(self.data) > self.score:
             del self.data[0]
             del self.data_poly[0]
 
     def draw(self, x, y):
         if self.type == 1:
-            for i in self.data:
-                pygame.draw.circle(self.game.screen, random.choice([YELLOW, BLACK, WHITE, GREEN, RED,BLUE]), i-vec(x,y), 20)
+            data_poly = []
+            for i in self.data_poly:
+                data_poly.append(i[0]+vec(20*i[1].rotate(90), 20*i[1].rotate(90))-vec(x,y))
+            for i in self.data_poly[::-1]:
+                data_poly.append(i[0]+vec(20*i[1].rotate(-90), 20*i[1].rotate(-90))-vec(x,y))
+            if len(data_poly)>4:
+                pygame.draw.polygon(self.game.screen, random.choice([YELLOW, BLACK, WHITE, GREEN, RED,BLUE]), data_poly)
         if self.type == 2 :
-            for i in self.data:
-                pygame.draw.circle(self.game.screen, self.color, i-vec(x,y), 20)
+            data_poly = []
+            for i in self.data_poly:
+                data_poly.append(i[0]+vec(20*i[1].rotate(90), 20*i[1].rotate(90))-vec(x,y))
+            for i in self.data_poly[::-1]:
+                data_poly.append(i[0]+vec(20*i[1].rotate(-90), 20*i[1].rotate(-90))-vec(x,y))
+            if len(data_poly) > 4:
+                pygame.draw.polygon(self.game.screen, self.color,data_poly)
 
     def crash(self, badguy):
         crash = False
@@ -198,8 +210,8 @@ class Slither:
             if self.data == badguy.data:
                 return False
         for i in badguy.data:
-            if len(self.data)-badguy.data.index(i) > 10:
-                crash = pygame.Rect(self.data[-1].x, self.data[-1].y, 20, 20).colliderect(pygame.Rect(i.x, i.y, 20,20))
+            if len(self.data)-badguy.data.index(i) > 4:
+                crash = pygame.Rect(self.data[-1].x, self.data[-1].y, 20, 20).collidepoint((i.x, i.y))
                 if crash == True:
                     return crash
 

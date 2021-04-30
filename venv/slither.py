@@ -4,6 +4,7 @@ import pygame
 import math
 import sys
 from pygame.locals import *
+from camera import *
 
 vec = pygame.math.Vector2
 
@@ -36,9 +37,11 @@ class Game:
         self.pizzas = []
         self.spwntime = 0
 
+
+
     def load_data(self):
         self.background = pygame.image.load('images/Stars.png').convert_alpha()
-        self.background = pygame.transform.scale(self.background, (WIDTH, HEIGHT))
+        self.background = pygame.transform.scale(self.background, (WIDTH*3, HEIGHT*3))
         self.pizza_image = pygame.image.load('images/pizza.png').convert_alpha()
         self.pizza_image = pygame.transform.scale(self.pizza_image, (80, 80))
 
@@ -56,7 +59,8 @@ class Game:
             self.draw()
 
     def update(self):
-        if len(self.slithers) < 7:
+        #지렁이 추가
+        if len(self.slithers) < 20:
             self.slithers.append(Slither(self, 2))
         for i in self.slithers:
             i.update()
@@ -99,11 +103,11 @@ class Game:
 
     def draw(self):
         self.screen.fill(BLACK)
-        self.screen.blit(self.background, (0, 0))
+        self.screen.blit(self.background, (0 - self.slithers[0].data[-1].x+WIDTH/2-WIDTH, 0 - self.slithers[0].data[-1].y+HEIGHT/2-HEIGHT))
         for i in self.slithers:
-            i.draw()
+            i.draw(self.slithers[0].data[-1].x-WIDTH/2, self.slithers[0].data[-1].y-HEIGHT/2)
         for i in self.pizzas:
-            i.draw()
+            i.draw(self.slithers[0].data[-1].x-WIDTH/2, self.slithers[0].data[-1].y-HEIGHT/2)
         self.draw_text(f"점수:{self.slithers[0].score}  남은 시간: 스테이지",22, WHITE, WIDTH / 2, 15)
         pygame.display.update()
 
@@ -152,7 +156,7 @@ class Game:
 class Slither:
     def __init__(self, game, type: int):
         self.game = game
-        self.pos= vec(random.randint(0, WIDTH), random.randint(0, HEIGHT))
+        self.pos= vec(random.randint( -WIDTH, WIDTH*2), random.randint(-HEIGHT, HEIGHT*2))
         self.vel = vec(0, 0)
         self.data = [vec(0, 0), vec(0, 0), vec(0, 0)]
         self.score = START_SCORE
@@ -165,6 +169,7 @@ class Slither:
     def update(self):
         if self.type == 1:
             mouse = vec(pygame.mouse.get_pos())
+            mouse = mouse - vec(-self.data[-1].x+WIDTH/2, -self.data[-1].y+HEIGHT/2)
         elif self.type == 2:
             mouse = vec(self.ai())
         self.vel = self.pos - mouse
@@ -175,13 +180,13 @@ class Slither:
         while len(self.data) > self.score:
             del self.data[0]
 
-    def draw(self):
+    def draw(self, x, y):
         if self.type == 1:
             for i in self.data:
-                pygame.draw.circle(self.game.screen, random.choice([YELLOW, BLACK, WHITE, GREEN, RED,BLUE]), i, 10)
+                pygame.draw.circle(self.game.screen, random.choice([YELLOW, BLACK, WHITE, GREEN, RED,BLUE]), i-vec(x,y), 10)
         if self.type == 2 :
             for i in self.data:
-                pygame.draw.circle(self.game.screen, self.color, i, 10)
+                pygame.draw.circle(self.game.screen, self.color, i-vec(x,y), 10)
 
     def crash(self, badguy):
         crash = False
@@ -200,7 +205,7 @@ class Slither:
         return pygame.Rect(self.data[-1].x-5, self.data[-1].y-5, 10, 10).colliderect(pygame.Rect(pizza.pos.x, pizza.pos.y, 80, 80))
 
     def ai(self):
-        if pygame.time.get_ticks()-self.spwntime1 > 10 :
+        if pygame.time.get_ticks()-self.spwntime1 > 100 :
             self.beforeai = self.aidata[random.randint(0,3)]
             self.spwntime1=pygame.time.get_ticks()
             return self.beforeai
@@ -212,11 +217,15 @@ class Slither:
 class Pizza:
     def __init__(self, game):
         self.game = game
-        self.pos = vec(random.randint(0, WIDTH), random.randint(0, HEIGHT))
-        self.color = RED
+        self.pos = vec(random.randint( -WIDTH, WIDTH*2), random.randint(-HEIGHT, HEIGHT*2))
 
-    def draw(self):
-        self.game.screen.blit( self.game.pizza_image, self.pos)
+    def draw(self, x, y):
+        self.game.screen.blit( self.game.pizza_image, self.pos-vec(x, y))
+
+
+
+
+
 
 
 game = Game()
